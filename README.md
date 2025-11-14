@@ -60,6 +60,84 @@ ping 192.168.10.2
 ```
 wget http://192.168.20.2
 ```
-<img width="1810" height="225" alt="image" src="https://github.com/user-attachments/assets/9bde2e45-f62e-43c8-8982-
-4214677ead81" />
+<img width="1811" height="223" alt="image" src="https://github.com/user-attachments/assets/505ab78c-4a54-4f9d-a0cf-b3e2cb2992cf" />
 
+## Étape 4 — Introduction du pare-feu
+
+### Pour le pare feux , dans le terminal de fw :
+
+```
+sudo iptables -P INPUT DROP  // Définit la politique par défaut : tout trafic entrant vers fw est bloqué
+sudo iptables -P OUTPUT DROP  // Tout trafic sortant depuis fw est bloqué par défaut
+sudo iptables -P FORWARD DROP  // Tout transit (trafic routé entre LAN et DMZ) est bloqué par défaut
+
+sudo iptables -A INPUT -i lo -j ACCEPT  // Autorise tous les flux sur l'interface locale (loopback)
+sudo iptables -A OUTPUT -o lo -j ACCEPT  // Autorise tous les flux sortants sur l'interface locale
+
+sudo iptables -A FORWARD -p icmp -s 192.168.10.0/24 -d 192.168.20.0/24 -j ACCEPT  // Autorise les pings (ICMP) du LAN vers le DMZ
+sudo iptables -A FORWARD -p tcp --dport 80 -s 192.168.10.0/24 -d 192.168.20.2 -j ACCEPT // Autorise le trafic HTTP (port 80) LAN vers le serveur web DMZ
+sudo iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT // Autorise les réponses aux connexions établies (retour HTTP/ping, etc.)
+```
+
+### Tests
+#### Depuis lan-cli ping dmz-srv et accès au service :
+<img width="1799" height="499" alt="image" src="https://github.com/user-attachments/assets/893ed24d-f583-4214-8a3d-4ff55c85e92c" />
+
+#### Depuis dmz-srv ping lan-cli :
+<img width="847" height="131" alt="image" src="https://github.com/user-attachments/assets/a9e97181-6a1b-47e8-8a65-19ff702e2139" />
+
+### Il est bien bloquer comme indiquer dans le pare feu
+
+## Étape 5 — Pare-feu plus strict + logs et observation
+
+### Sur fw, « tout est bloqué sauf ce que j’autorise » :
+```
+sudo iptables -P INPUT DROP  // Tout ce qui arrive sur fw est bloqué par défaut
+sudo iptables -P OUTPUT DROP   // Tout ce qui sort de fw est bloqué par défaut
+sudo iptables -P FORWARD DROP // Aucun routage LAN<->DMZ n'est autorisé par défaut
+```
+
+### Autoriser uniquement : 
+- ping dmz-srv depuis lan-cli
+- accès au service lan-cli
+- administration de dmz-srv depuis fw
+
+```
+sudo iptables -A INPUT -i lo -j ACCEPT    // Autorise tout ce qui est local (loopback)
+sudo iptables -A OUTPUT -o lo -j ACCEPT  // Pareil
+
+sudo iptables -A FORWARD -p icmp -s 192.168.10.0/24 -d 192.168.20.0/24 -j ACCEPT  // Autorise le ping du LAN vers la DMZ
+sudo iptables -A FORWARD -p tcp --dport 80 -s 192.168.10.0/24 -d 192.168.20.2 -j ACCEPT // Autorise HTTP du LAN vers DMZ
+
+sudo iptables -A OUTPUT -p tcp --dport 22 -d 192.168.20.2 -j ACCEPT  // Autorise SSH sortant fw→dmz-srv (inutile si pas demandé)
+sudo iptables -A INPUT -p tcp --sport 22 -s 192.168.20.2 -j ACCEPT    // Autorise retour du SSH dmz-srv→fw
+```
+
+### Ajouter une règle de log pour les paquets refusés
+```
+sudo iptables -A FORWARD -j LOG --log-prefix "[FW DROP] " --log-level 4   // Envoie une trace dans /var/log/syslog pour chaque paquet refusé
+```
+
+### Tests
+#### Sur lan-cli ping et accès au service de dmz :
+<img width="1782" height="518" alt="image" src="https://github.com/user-attachments/assets/90701eb9-ba15-4c8b-bd71-a9042902a235" />
+
+#### Sur lan-cli, un port non autoriser :
+<img width="780" height="189" alt="image" src="https://github.com/user-attachments/assets/f1c74ff9-8587-4153-b350-c049567f263f" />
+
+#### Logs des paquet bloquer :
+<img width="1273" height="84" alt="image" src="https://github.com/user-attachments/assets/d6a72def-d9d8-4aa2-81b7-60adb78afc24" />
+
+### Pour expliquer, j'ai bloquer tous depuis le pare feu et après j'ai autoriser seulement ce qui étais demander.
+
+## Étape 6 — Scénarios bonus 
+
+## Je choisis le scénario 3 : Mini-DNS local pour la DMZ
+
+### Je commence par ```sudo nano /etc/hosts``` sur lan-cli
+### J'ai rajouter la ligne ```192.168.20.2   srv.tp.local```
+### Enregistrez puis quitter le nano
+### Et enfin ```wget http://srv.tp.local```
+<img width="1794" height="280" alt="image" src="https://github.com/user-attachments/assets/ce1a7abe-aacf-464d-ad24-056999c67fe7" />
+
+### Comme sa, on accède a dmz grâce a srv.tp.local au lieu de l'ip
