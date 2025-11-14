@@ -141,3 +141,39 @@ sudo iptables -A FORWARD -j LOG --log-prefix "[FW DROP] " --log-level 4   // Env
 <img width="1794" height="280" alt="image" src="https://github.com/user-attachments/assets/ce1a7abe-aacf-464d-ad24-056999c67fe7" />
 
 ### Comme sa, on accède a dmz grâce a srv.tp.local au lieu de l'ip
+
+##
+```
+Checklist élève 
+
+
+✅ 3 VM créées
+
+✅ 2 réseaux internes distincts (lan_int, dmz)
+
+✅ IP statiques sur toutes les interfaces
+
+✅ Ping lan-cli ↔️ fw (lan_int)
+
+✅ Ping dmz-srv ↔️ fw (dmz)
+
+✅ Ping lan-cli ↔️ dmz-srv (via fw)
+
+✅ Service installé sur dmz-srv
+
+
+✅ Accès au service depuis lan-cli
+
+
+✅ Pare-feu simple opérationnel
+
+✅ Flux nécessaires autorisés
+
+✅ Flux inutiles bloqués
+
+✅ Logs/captures de paquets bloqués
+
+✅ Rapport complété
+
+✅ Scénario bonus réalisé
+```
