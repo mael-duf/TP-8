@@ -31,3 +31,35 @@
 ### Ping de lan-cli depuis dmz-srv :
 <img width="718" height="353" alt="image" src="https://github.com/user-attachments/assets/0e248849-1d05-43b6-b0c0-f674e671f2f2" />
 
+## Étape 3 — Mise en place d’un serveur dans la DMZ
+
+### Sur dmz-srv :
+```
+sudo apt update
+sudo apt install apache2 -y
+sudo systemctl status apache2
+```
+<img width="1851" height="384" alt="image" src="https://github.com/user-attachments/assets/f2a932a6-702f-497c-a4b0-64fb9dc931d1" />
+
+### Activer le routage sur lan-cli : ```sudo sysctl -w net.ipv4.ip_forward=1```
+
+### Test les connectiviter
+#### Sur lan-cli :
+```
+ping 192.168.10.1
+ping 192.168.20.2
+```
+#### Sur dmz-srv :
+```
+ping 192.168.20.1
+ping 192.168.10.2
+```
+
+### Test l'accès au serveur web Apache
+#### Sur lan-cli :
+```
+wget http://192.168.20.2
+```
+<img width="1810" height="225" alt="image" src="https://github.com/user-attachments/assets/9bde2e45-f62e-43c8-8982-
+4214677ead81" />
+
